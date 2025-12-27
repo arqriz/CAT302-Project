@@ -24,6 +24,7 @@ dependencies:
 
   # Feature Dependencies (from original list)
   image_picker: ^1.0.4
+  google_fonts: ^6.3.3
   #qr_code_scanner: ^1.0.1
 
 

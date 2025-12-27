@@ -38,7 +38,7 @@ class _DashboardPageState extends State<DashboardPage> {
       extendBody: true,
       appBar: AppBar(
         title: const Text(
-          "EcoImpact", 
+          "REGEN: Recycle Companion", 
           style: TextStyle(color: mossGreen, fontWeight: FontWeight.bold)
         ),
         backgroundColor: Colors.transparent,

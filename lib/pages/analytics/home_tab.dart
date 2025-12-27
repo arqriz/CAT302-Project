@@ -5,6 +5,8 @@ import '../../models/user_model.dart';
 import '../../models/activity_model.dart';
 import '../../services/activity_service.dart';
 import '../participation/log_activity_page.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -351,27 +353,69 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildModernHeader(User user) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(25, 60, 25, 40),
-      decoration: const BoxDecoration(color: mossGreen, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Welcome, ${user.name.split(' ')[0]}!", style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-              const Icon(Icons.whatshot_rounded, color: Colors.orange, size: 28),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text("${user.points} Carbon Points", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
-          const SizedBox(height: 25),
-          _buildSearchBar(),
-        ],
+  return Container(
+    padding: const EdgeInsets.fromLTRB(25, 60, 25, 30),
+    decoration: const BoxDecoration(
+      // 1. ADD GRADIENT: Makes the header feel deeper and more natural
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF5B6739), Color(0xFF7A8950)], // mossGreen -> lighter sage
       ),
-    );
-  }
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(35),
+        bottomRight: Radius.circular(35),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 2. USE GOOGLE FONTS: Much cleaner typography
+                Text(
+                  "Hello, ${user.name.split(' ')[0]}!",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Let's save the planet today.",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            // 3. AVATAR RING: Adds a nice detail around the user/icon
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(
+                color: Colors.white24,
+                shape: BoxShape.circle,
+              ),
+              child: const CircleAvatar(
+                backgroundColor: Colors.white,
+                radius: 22,
+                child: Icon(Icons.person, color: Color(0xFF5B6739)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 30),
+        _buildSearchBar(), // We will upgrade this next
+      ],
+    ),
+  );
+}
 
   Widget _buildQuickActions() {
     return Padding(
@@ -388,22 +432,40 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _actionButton(IconData icon, String label, VoidCallback onTap) {
-    return Column(
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(20),
+    child: Column(
       children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(15),
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(color: creamWhite, borderRadius: BorderRadius.circular(20), border: Border.all(color: mossGreen.withOpacity(0.1))),
-            child: Icon(icon, color: mossGreen, size: 28),
+        Container(
+          height: 70,
+          width: 70,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9F9F0), // Your creamWhite
+            borderRadius: BorderRadius.circular(22), // "Squircle" shape
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF5B6739).withOpacity(0.1), // Greenish shadow
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: const Color(0xFF5B6739), size: 30),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF5B6739),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: mossGreen)),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildThemeCard(String title, IconData icon, String description) {
     return GestureDetector(
@@ -421,22 +483,33 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(15)),
-      child: TextField(
-        controller: _searchController,
-        style: const TextStyle(color: Colors.white),
-        onChanged: (val) => setState(() => _searchQuery = val),
-        decoration: const InputDecoration(
-          hintText: "Search items...",
-          hintStyle: TextStyle(color: Colors.white60),
-          border: InputBorder.none,
-          icon: Icon(Icons.search, color: Colors.white60),
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white, // Solid white background
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        // Soft shadow to make it "float"
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 15,
+          offset: const Offset(0, 5),
         ),
+      ],
+    ),
+    child: TextField(
+      controller: _searchController,
+      style: GoogleFonts.poppins(color: Colors.black87), // Dark text for contrast
+      onChanged: (val) => setState(() => _searchQuery = val),
+      decoration: InputDecoration(
+        hintText: "Search recyclable items...",
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400),
+        border: InputBorder.none,
+        prefixIcon: const Icon(Icons.search, color: Color(0xFF5B6739)), // mossGreen icon
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSectionHeader(String title) {
     return Padding(padding: const EdgeInsets.fromLTRB(25, 30, 25, 15), child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: mossGreen)));
