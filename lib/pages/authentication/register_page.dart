@@ -215,7 +215,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         items: items
             .map((item) => DropdownMenuItem(value: item, child: Text(item)))
             .toList(),
