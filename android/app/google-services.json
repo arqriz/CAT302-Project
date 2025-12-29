@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "883263555862",
+    "project_id": "regen-gamified",
+    "storage_bucket": "regen-gamified.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:883263555862:android:fcebde672434b7b0346837",
+        "android_client_info": {
+          "package_name": "com.example.testingapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "883263555862-blnke5a3kilvedjtogml3tsm82q8ogba.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.testingapp",
+            "certificate_hash": "5aa0b8a9204a38f0ee496275fcdeff11b42537da"
+          }
+        },
+        {
+          "client_id": "883263555862-lvburnjqiouoeibq6c077qgi0hflvlls.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.testingapp",
+            "certificate_hash": "f2b26debe5da66ebd3bda76294ac5dedb6fb2fe7"
+          }
+        },
+        {
+          "client_id": "883263555862-3525bmp0eh86h4ofbvbqe17u7g8vc0q5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSCF9ihTBgzC67AmrGyBh7XJkYwOXR9Lw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "883263555862-3525bmp0eh86h4ofbvbqe17u7g8vc0q5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "883263555862-90dmjuempkbp24qj1daf727f4pen3lg0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.testingapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
