@@ -169,6 +169,27 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
                       subtitle: Text("${user.points} pts | ${user.matricNo}"),
                       trailing: PopupMenuButton<String>(
                         onSelected: (val) {
+                          if (val == 'view') {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text("${user.name}'s Profile"),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Name: ${user.name}"),
+                                    Text("Matric No: ${user.matricNo}"),
+                                    Text("Points: ${user.points}"),
+                                    Text("Admin: ${user.isAdmin ? "Yes" : "No"}"),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
+                                ],
+                              ),
+                            );
+                          }
                           if (val == 'pts') _showEditPointsDialog(user);
                           if (val == 'admin') {
                             FirebaseFirestore.instance.collection('users').doc(user.id).update({'isAdmin': !user.isAdmin});
@@ -176,6 +197,7 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
                           if (val == 'delete') _showDeleteConfirmation(user);
                         },
                         itemBuilder: (ctx) => [
+                          const PopupMenuItem(value: 'view', child: Text("View Profile")),
                           const PopupMenuItem(value: 'pts', child: Text("Edit Points")),
                           PopupMenuItem(value: 'admin', child: Text(user.isAdmin ? "Remove Admin" : "Make Admin")),
                           const PopupMenuItem(value: 'delete', child: Text("Delete User", style: TextStyle(color: Colors.red))),
