@@ -16,6 +16,7 @@ class _LoginPageState extends State<LoginPage>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  
   bool _isLoading = false;
   bool _isGoogleLoading = false;
 
@@ -26,17 +27,31 @@ class _LoginPageState extends State<LoginPage>
 
   Future<void> _performLogin(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
+    
     setState(() => _isLoading = true);
+    
     final authService = Provider.of<AuthService>(context, listen: false);
+    
     try {
       final success = await authService.login(
           _emailController.text.trim(), _passwordController.text.trim());
-      if (mounted && !success) {
-        _showErrorSnackBar("Login failed. Check credentials.");
+      
+      if (success) {
+        // FIX: Force navigation to Dashboard on success
+        if (mounted) {
+           Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+        }
+      } else {
+        if (mounted) {
+          _showErrorSnackBar("Login failed. Check credentials.");
+        }
       }
     } catch (e) {
       if (mounted) {
         _showErrorSnackBar("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      if (mounted) {
         setState(() => _isLoading = false);
       }
     }
@@ -47,11 +62,14 @@ class _LoginPageState extends State<LoginPage>
     final authService = Provider.of<AuthService>(context, listen: false);
     try {
       final user = await authService.signInWithGoogle();
-      if (user == null && mounted) {
+      if (user != null && mounted) {
+        // FIX: Force navigation to Dashboard on success
+        Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+      } else if (mounted) {
         _showErrorSnackBar("Google Sign-In canceled.");
       }
     } catch (e) {
-      _showErrorSnackBar("Google Sign-In failed.");
+      if (mounted) _showErrorSnackBar("Google Sign-In failed.");
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
     }
@@ -173,14 +191,12 @@ class _LoginPageState extends State<LoginPage>
                   CircularProgressIndicator(strokeWidth: 2, color: primaryDark))
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min, // Prevents overflow
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Replaced broken network image with an Icon
                 const Icon(Icons.g_mobiledata_rounded,
                     size: 35, color: primaryDark),
                 const SizedBox(width: 8),
                 const Flexible(
-                  // Ensures text stays inside button boundaries
                   child: Text(
                     "Continue with Google",
                     overflow: TextOverflow.ellipsis,
