@@ -7,78 +7,163 @@ class RewardsTab extends StatelessWidget {
   const RewardsTab({super.key});
 
   static const Color mossGreen = Color(0xFF5B6739);
-  static const Color lightSage = Color(0xFFDDE2C9);
-  static const Color creamWhite = Color(0xFFF9F9F0);
+  static const Color gold = Color(0xFFDAA520);
 
   @override
   Widget build(BuildContext context) {
     final uid = fb_auth.FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: lightSage,
+      extendBodyBehindAppBar: true, 
       appBar: AppBar(
-        title: const Text('Impact Rewards', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Impact Rewards', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: mossGreen,
+        centerTitle: true,
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          
-          final userData = snapshot.data!.data() as Map<String, dynamic>;
-          final int points = userData['points'] ?? 0;
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF556B2F), Color(0xFFFDFCF5)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.4],
+          ),
+        ),
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
+            
+            final userData = snapshot.data!.data() as Map<String, dynamic>;
+            final int points = userData['points'] ?? 0;
 
-          return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            children: [
-              _buildProgressCard(points),
-              const SizedBox(height: 20),
-              _buildSectionHeader("Redeem Rewards"),
-              _buildRewardsList(points, context), 
-              _buildSectionHeader("Achievements"),
-              _buildBadgeGrid(points),
-              const SizedBox(height: 100),
-            ],
-          );
-        },
+            return ListView(
+              padding: const EdgeInsets.only(top: 100, bottom: 40), 
+              children: [
+                // 1. Points Card
+                _buildProgressCard(points),
+                
+                const SizedBox(height: 25),
+
+                // 2. Rewards Section
+                _buildSectionHeader("Redeem Rewards", Colors.black87),
+                _buildRewardsList(points, context), 
+                
+                const SizedBox(height: 20),
+
+                // 3. Badges Section
+                _buildSectionHeader("Achievements", Colors.black87),
+                _buildBadgeGrid(points),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  // --- REWARDS LIST SECTION ---
+  // --- WIDGETS ---
+
+  Widget _buildProgressCard(int points) {
+    double progress = (points % 500) / 500;
+    int level = (points ~/ 500) + 1;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Current Balance", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text("$points", style: const TextStyle(color: mossGreen, fontSize: 36, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: gold.withOpacity(0.2), shape: BoxShape.circle),
+                child: const Icon(Icons.emoji_events, color: gold, size: 30),
+              )
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Progress Bar
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Level $level", style: const TextStyle(fontWeight: FontWeight.bold, color: mossGreen)),
+                  Text("${500 - (points % 500)} pts to next level", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: Colors.grey.shade200,
+                  color: gold,
+                  minHeight: 10,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRewardsList(int userPoints, BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('rewards').orderBy('pointCost').snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        
-        if (snapshot.data!.docs.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Padding(
             padding: EdgeInsets.symmetric(horizontal: 25),
-            child: Text("No rewards available yet.", style: TextStyle(color: Colors.grey)),
+            child: Text("No rewards available.", style: TextStyle(color: Colors.grey)),
           );
         }
 
         return SizedBox(
-          height: 170,
+          height: 200, // Increased height to prevent overflow
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 25),
+            padding: const EdgeInsets.only(left: 20, right: 10),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               final reward = Reward.fromFirestore(snapshot.data!.docs[index]);
               final bool canAfford = userPoints >= reward.pointCost;
 
               return Container(
-                width: 150,
+                width: 160,
                 margin: const EdgeInsets.only(right: 15),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: creamWhite, 
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: canAfford ? Border.all(color: mossGreen, width: 2) : null,
+                  border: Border.all(
+                    color: canAfford ? mossGreen : Colors.grey.shade300, 
+                    width: canAfford ? 2 : 1
+                  ),
                   boxShadow: [
                     BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 4))
                   ],
@@ -86,18 +171,48 @@ class RewardsTab extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.card_giftcard, size: 35, color: canAfford ? mossGreen : Colors.grey),
-                    const SizedBox(height: 8),
-                    Text(reward.title, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, color: mossGreen, fontSize: 13)),
-                    Text("${reward.pointCost} pts", style: TextStyle(fontWeight: FontWeight.bold, color: canAfford ? Colors.orange : Colors.grey, fontSize: 12)),
-                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: canAfford ? mossGreen.withOpacity(0.1) : Colors.grey.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.card_giftcard, size: 30, color: canAfford ? mossGreen : Colors.grey),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      reward.title, 
+                      textAlign: TextAlign.center, 
+                      maxLines: 1, 
+                      overflow: TextOverflow.ellipsis, 
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)
+                    ),
+                    Text(
+                      "${reward.pointCost} pts", 
+                      style: TextStyle(fontWeight: FontWeight.bold, color: canAfford ? Colors.orange : Colors.grey, fontSize: 12)
+                    ),
+                    const Spacer(),
+                    
+                    // --- FIXED BUTTON ---
                     SizedBox(
-                      height: 30,
+                      height: 36, // Slightly taller
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: canAfford ? () => _redeemReward(context, reward) : null,
-                        style: ElevatedButton.styleFrom(backgroundColor: mossGreen, foregroundColor: Colors.white, padding: EdgeInsets.zero),
-                        child: const Text("Redeem"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: mossGreen, 
+                          foregroundColor: Colors.white,
+                          // FIX: Explicitly set DISABLED colors so text is visible
+                          disabledBackgroundColor: Colors.grey.shade200,
+                          disabledForegroundColor: Colors.grey.shade500,
+                          elevation: 0,
+                          padding: EdgeInsets.zero, // Ensures text fits
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+                        ),
+                        child: Text(
+                          canAfford ? "Redeem" : "Locked", // Text changes if locked
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)
+                        ),
                       ),
                     )
                   ],
@@ -110,7 +225,52 @@ class RewardsTab extends StatelessWidget {
     );
   }
 
-  // --- UPDATED: SAVES TO PROFILE HISTORY ---
+  Widget _buildBadgeGrid(int userPoints) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: 15,
+        crossAxisSpacing: 15,
+        childAspectRatio: 1.2,
+        children: [
+          _badgeItem("Eco Sprout", 100, Icons.eco, userPoints),
+          _badgeItem("Recycle Rookie", 300, Icons.auto_awesome, userPoints),
+          _badgeItem("Plastic Hero", 600, Icons.water_drop, userPoints),
+          _badgeItem("Carbon Master", 1000, Icons.cloud_done, userPoints),
+        ],
+      ),
+    );
+  }
+
+  Widget _badgeItem(String name, int required, IconData icon, int userPoints) {
+    bool isUnlocked = userPoints >= required;
+    return Container(
+      decoration: BoxDecoration(
+        color: isUnlocked ? Colors.white : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+        border: isUnlocked ? Border.all(color: gold, width: 2) : null,
+        boxShadow: isUnlocked ? [BoxShadow(color: Colors.amber.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))] : [],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 35, color: isUnlocked ? mossGreen : Colors.grey.shade400),
+          const SizedBox(height: 8),
+          Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: isUnlocked ? Colors.black87 : Colors.grey, fontSize: 13)),
+          Text("$required pts", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          if (isUnlocked)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Icon(Icons.check_circle, size: 14, color: gold),
+            )
+        ],
+      ),
+    );
+  }
+
   void _redeemReward(BuildContext context, Reward reward) {
     showDialog(
       context: context,
@@ -121,50 +281,33 @@ class RewardsTab extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           TextButton(
             onPressed: () async {
-              Navigator.pop(ctx); 
-              
+              Navigator.pop(ctx);
               final uid = fb_auth.FirebaseAuth.instance.currentUser?.uid;
               if (uid == null) return;
-
               try {
-                // 1. Transaction to deduct points safely
                 await FirebaseFirestore.instance.runTransaction((transaction) async {
                   final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
                   final userSnapshot = await transaction.get(userRef);
-
                   if (!userSnapshot.exists) throw Exception("User does not exist!");
-
                   final int currentPoints = (userSnapshot.data()?['points'] ?? 0);
-
                   if (currentPoints >= reward.pointCost) {
                     transaction.update(userRef, {'points': currentPoints - reward.pointCost});
                   } else {
                     throw Exception("Insufficient points!");
                   }
                 });
-
-                // 2. NEW: Save to 'redeemed' sub-collection for the Profile Page
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(uid)
-                    .collection('redeemed')
-                    .add({
-                      'title': reward.title,
-                      'pointCost': reward.pointCost,
-                      'timestamp': FieldValue.serverTimestamp(),
-                      'status': 'Active' // You can use this to show "Used" or "Active"
-                    });
-
+                await FirebaseFirestore.instance.collection('users').doc(uid).collection('redeemed').add({
+                  'title': reward.title,
+                  'pointCost': reward.pointCost,
+                  'timestamp': FieldValue.serverTimestamp(),
+                  'status': 'Active'
+                });
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Redeemed ${reward.title}! Check your Profile."), backgroundColor: Colors.green),
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Redeemed Successfully!"), backgroundColor: Colors.green));
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Failed: ${e.toString()}"), backgroundColor: Colors.red),
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
                 }
               }
             },
@@ -175,34 +318,10 @@ class RewardsTab extends StatelessWidget {
     );
   }
 
-  // --- HELPERS ---
-  Widget _buildSectionHeader(String title) {
-    return Padding(padding: const EdgeInsets.fromLTRB(25, 10, 25, 15), child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: mossGreen)));
-  }
-
-  Widget _buildProgressCard(int points) {
-    double progress = (points % 500) / 500;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 25), padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: mossGreen, borderRadius: BorderRadius.circular(30)), 
-      child: Column(children: [
-        const Text("Points Balance", style: TextStyle(color: Colors.white70)), 
-        Text("$points pts", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), 
-        const SizedBox(height: 20), 
-        LinearProgressIndicator(value: progress, backgroundColor: Colors.white24, color: Colors.amber, minHeight: 8, borderRadius: BorderRadius.circular(10))
-      ])
-    );
-  }
-
-  Widget _buildBadgeGrid(int userPoints) {
-    return Padding(padding: const EdgeInsets.symmetric(horizontal: 25), child: GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 15, crossAxisSpacing: 15, childAspectRatio: 1.1, children: [_badgeItem("Eco Sprout", 100, Icons.eco, userPoints), _badgeItem("Recycle Rookie", 300, Icons.auto_awesome, userPoints), _badgeItem("Plastic Hero", 600, Icons.water_drop, userPoints), _badgeItem("Carbon Master", 1000, Icons.cloud_done, userPoints)]));
-  }
-
-  Widget _badgeItem(String name, int required, IconData icon, int userPoints) {
-    bool isUnlocked = userPoints >= required;
-    return Container(
-      decoration: BoxDecoration(color: isUnlocked ? creamWhite : Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(25), border: isUnlocked ? Border.all(color: Colors.amber, width: 2) : null), 
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 40, color: isUnlocked ? mossGreen : Colors.grey), const SizedBox(height: 10), Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: isUnlocked ? mossGreen : Colors.grey, fontSize: 13)), Text("$required pts", style: const TextStyle(fontSize: 11, color: Colors.grey))])
+  Widget _buildSectionHeader(String title, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+      child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
     );
   }
 }
