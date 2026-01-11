@@ -1,269 +1,411 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
-import '../../models/user_model.dart';
+import '../../services/auth_service.dart';
 import '../admin/admin_panel.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
 
-  // Updated Dynamic Green Palette
-  static const Color forestDeep = Color(0xFF1B261B);
-  static const Color mossMain = Color(0xFF556B2F);
-  static const Color sageBg = Color(0xFFE8EDD1); 
-  static const Color leafCard = Color(0xFFF1F4E4); 
-  static const Color accentGold = Color(0xFFC5A358);
+  static const Color mossGreen = Color(0xFF5B6739);
+  static const Color goldColor = Color(0xFFDAA520);
 
   @override
   Widget build(BuildContext context) {
-    final String? uid = fb_auth.FirebaseAuth.instance.currentUser?.uid;
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.currentUser;
 
-    if (uid == null) {
-      return const Center(child: Text("Please log in again."));
+    if (user == null) {
+      return const Center(child: CircularProgressIndicator(color: mossGreen));
     }
 
-    return Scaffold(
-      backgroundColor: sageBg,
-      body: StreamBuilder<DocumentSnapshot>(
-        // Direct stream to the user document
-        stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+    // CHECK LOGIN METHOD:
+    // If the user signed in with 'password', they can change it.
+    // If they signed in with 'google.com', they cannot.
+    bool isPasswordUser = false;
+    final fbUser = fb_auth.FirebaseAuth.instance.currentUser;
+    if (fbUser != null) {
+      for (final provider in fbUser.providerData) {
+        if (provider.providerId == 'password') {
+          isPasswordUser = true;
+        }
+      }
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF556B2F), Color(0xFFFDFCF5)],
+          begin: Alignment.topCenter,
+          end: Alignment.center,
+        ),
+      ),
+      child: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection('users').doc(user.id).snapshots(),
         builder: (context, snapshot) {
-          // 1. Handle Loading State
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: mossMain),
-            );
-          }
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
 
-          // 2. Handle Document Missing (Common right after Signup)
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return _buildLoadingOrErrorState(context, "Finalizing your profile...");
-          }
+          final userData = snapshot.data!.data() as Map<String, dynamic>;
+          
+          final String name = userData['name'] ?? user.name;
+          final String email = userData['email'] ?? user.email;
+          final String faculty = userData['faculty'] ?? user.faculty;
+          final String college = userData['residentialCollege'] ?? user.residentialCollege;
+          final String matricNo = userData['matricNo'] ?? user.matricNo;
+          final bool isAdmin = userData['isAdmin'] ?? user.isAdmin;
 
-          // 3. Handle Errors (e.g., Permission Denied)
-          if (snapshot.hasError) {
-            return _buildErrorState(context, "Permission Denied. Check Rules.");
-          }
-
-          final user = User.fromFirestore(snapshot.data!);
-          final Map<String, dynamic> rawData = snapshot.data!.data() as Map<String, dynamic>;
-          final bool isAdmin = rawData['isAdmin'] ?? false;
-
-          return Stack(
-            children: [
-              // Top Decorative Header
-              Container(
-                height: 240,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [forestDeep, mossMain],
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(60),
-                    bottomRight: Radius.circular(60),
-                  ),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                
+                // Profile Picture
+                const CircleAvatar(
+                  radius: 50,
+                  backgroundColor: goldColor,
+                  child: Icon(Icons.person, size: 50, color: Colors.white),
                 ),
-              ),
-
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 70),
-                      _buildHeaderCard(user, isAdmin),
-                      const SizedBox(height: 25),
-                      if (isAdmin) _buildPremiumAdminTile(context),
-                      const SizedBox(height: 30),
-                      _buildSectionLabel("Student Details"),
-                      const SizedBox(height: 16),
-                      _buildInfoGrid(user),
-                      const SizedBox(height: 40),
-                      _buildLogoutButton(context),
-                      const SizedBox(height: 120),
+                
+                const SizedBox(height: 16),
+                
+                // Name & Edit Button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 24, 
+                        fontWeight: FontWeight.bold, 
+                        color: Colors.white 
+                      ),
+                    ),
+                    if (isAdmin) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.verified, color: Colors.lightBlueAccent, size: 20),
                     ],
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 20, color: Colors.white70),
+                      onPressed: () => _showEditProfileDialog(context, user.id, userData),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                
+                Text(email, style: const TextStyle(color: Colors.white70)),
+                const SizedBox(height: 32),
+                
+                // Info Cards
+                _buildInfoSection(faculty, college, matricNo),
+
+                const SizedBox(height: 20),
+
+                // Redeemed Rewards
+                _buildRedeemedRewards(user.id),
+                
+                const SizedBox(height: 20),
+
+                // ONLY SHOW CHANGE PASSWORD IF LOGGED IN WITH EMAIL/PASSWORD
+                if (isPasswordUser)
+                  _buildActionTile(
+                    icon: Icons.lock_outline,
+                    title: "Change Password",
+                    color: mossGreen,
+                    onTap: () => _showChangePasswordDialog(context),
+                  ),
+
+                // Admin Panel
+                if (isAdmin)
+                  _buildActionTile(
+                    icon: Icons.admin_panel_settings,
+                    title: "Admin Dashboard",
+                    color: Colors.red,
+                    isRed: true,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminPanel())),
+                  ),
+
+                const SizedBox(height: 40),
+                
+                // Logout Button
+                _buildLogoutButton(context, authService),
+                
+                const SizedBox(height: 100),
+              ],
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildSectionLabel(String text) {
-    return Row(
-      children: [
-        const Icon(Icons.eco, color: mossMain, size: 20),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: forestDeep.withOpacity(0.8),
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    );
-  }
+  // --- FEATURE: EDIT PROFILE ---
+  void _showEditProfileDialog(BuildContext context, String uid, Map<String, dynamic> data) {
+    final nameController = TextEditingController(text: data['name']);
+    final facultyController = TextEditingController(text: data['faculty']);
+    final collegeController = TextEditingController(text: data['residentialCollege']);
+    final matricController = TextEditingController(text: data['matricNo']);
 
-  Widget _buildHeaderCard(User user, bool isAdmin) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: leafCard,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: forestDeep.withOpacity(0.12),
-            blurRadius: 25,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Stack(
-            alignment: Alignment.bottomRight,
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Edit Profile", style: TextStyle(color: mossGreen, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: forestDeep,
-                child: Text(
-                  user.name.isNotEmpty ? user.name.substring(0, 1).toUpperCase() : "?",
-                  style: const TextStyle(fontSize: 40, color: sageBg, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const CircleAvatar(
-                radius: 15,
-                backgroundColor: accentGold,
-                child: Icon(Icons.edit, size: 14, color: Colors.white),
-              ),
+              _buildTextField(nameController, "Full Name"),
+              _buildTextField(facultyController, "Faculty"),
+              _buildTextField(collegeController, "Residential College"),
+              _buildTextField(matricController, "Matric No"),
             ],
           ),
-          const SizedBox(height: 20),
-          Text(
-            user.name,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: forestDeep),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            user.email,
-            style: TextStyle(color: mossMain.withOpacity(0.7), fontWeight: FontWeight.w500),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseFirestore.instance.collection('users').doc(uid).update({
+                  'name': nameController.text,
+                  'faculty': facultyController.text,
+                  'residentialCollege': collegeController.text,
+                  'matricNo': matricController.text,
+                });
+                if (context.mounted) Navigator.pop(ctx);
+              } catch (e) {
+                // Handle Rule Error
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to update: $e")));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: mossGreen, foregroundColor: Colors.white),
+            child: const Text("Save"),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoGrid(User user) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.3,
-      children: [
-        _buildInfoCard(Icons.school, 'Faculty', user.faculty),
-        _buildInfoCard(Icons.location_city, 'College', user.residentialCollege),
-        _buildInfoCard(Icons.fingerprint, 'Matric No.', user.matricNo),
-        _buildInfoCard(Icons.energy_savings_leaf, 'Impact', 'Elite Member'),
-      ],
-    );
-  }
+  // --- FEATURE: CHANGE PASSWORD ---
+  void _showChangePasswordDialog(BuildContext context) {
+    final currentPassController = TextEditingController();
+    final newPassController = TextEditingController();
 
-  Widget _buildInfoCard(IconData icon, String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: leafCard,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: mossMain, size: 18),
-          const Spacer(),
-          Text(label, style: TextStyle(fontSize: 10, color: mossMain.withOpacity(0.6), fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, color: forestDeep, fontSize: 13)),
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Change Password", style: TextStyle(color: mossGreen, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("To secure your account, please enter your current password first.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 15),
+            TextField(
+              controller: currentPassController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: "Current Password",
+                isDense: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: mossGreen, width: 2)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: newPassController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: "New Password", 
+                hintText: "Min. 6 characters",
+                isDense: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: mossGreen, width: 2)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () async {
+              if (newPassController.text.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("New password must be at least 6 characters")));
+                return;
+              }
+
+              final user = fb_auth.FirebaseAuth.instance.currentUser;
+              if (user == null) return;
+
+              try {
+                // 1. Re-authenticate
+                final cred = fb_auth.EmailAuthProvider.credential(
+                  email: user.email!, 
+                  password: currentPassController.text
+                );
+                await user.reauthenticateWithCredential(cred);
+
+                // 2. Update Password
+                await user.updatePassword(newPassController.text);
+                
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text("Password updated successfully!"),
+                    backgroundColor: Colors.green,
+                  ));
+                }
+              } on fb_auth.FirebaseAuthException catch (e) {
+                String msg = "Error: ${e.message}";
+                if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+                  msg = "Incorrect current password.";
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: mossGreen, foregroundColor: Colors.white),
+            child: const Text("Update"),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPremiumAdminTile(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF8B0000), Color(0xFFD32F2F)]),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: ListTile(
-        leading: const Icon(Icons.admin_panel_settings, color: Colors.white),
-        title: const Text('Admin Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.white),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminPanel())),
-      ),
-    );
-  }
+  // --- WIDGET HELPERS ---
 
-  Widget _buildLogoutButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () async {
-          await fb_auth.FirebaseAuth.instance.signOut();
-          if (context.mounted) {
-            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-          }
-        },
-        icon: const Icon(Icons.logout, color: Colors.redAccent),
-        label: const Text("Sign Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          side: const BorderSide(color: Colors.redAccent),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+  Widget _buildTextField(TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: mossGreen, width: 2)),
         ),
       ),
     );
   }
 
-  Widget _buildLoadingOrErrorState(BuildContext context, String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildInfoSection(String faculty, String college, String matric) {
+    return Column(
+      children: [
+        _infoTile(Icons.school_outlined, 'Faculty', faculty),
+        _infoTile(Icons.apartment_outlined, 'College', college),
+        _infoTile(Icons.badge_outlined, 'Matric No.', matric),
+      ],
+    );
+  }
+
+  Widget _buildRedeemedRewards(String uid) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(uid).collection('redeemed').orderBy('timestamp', descending: true).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink(); 
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              child: Text("My Rewards", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: mossGreen)),
+            ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: mossGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.card_giftcard, color: mossGreen, size: 20),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(child: Text(data['title'] ?? 'Reward', style: const TextStyle(fontWeight: FontWeight.bold, color: mossGreen))),
+                      const Text("Active", style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _infoTile(IconData icon, String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+        ],
+      ),
+      child: Row(
         children: [
-          const CircularProgressIndicator(color: mossMain),
-          const SizedBox(height: 20),
-          Text(message, style: const TextStyle(color: mossMain)),
+          Icon(icon, color: mossGreen),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: mossGreen)),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorState(BuildContext context, String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
-          const SizedBox(height: 16),
-          Text(message, style: const TextStyle(color: Colors.redAccent)),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => fb_auth.FirebaseAuth.instance.signOut(),
-            child: const Text("Logout & Try Again"),
-          )
-        ],
+  Widget _buildActionTile({required IconData icon, required String title, required Color color, required VoidCallback onTap, bool isRed = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isRed ? Colors.red.shade50 : Colors.white, 
+        borderRadius: BorderRadius.circular(20),
+        border: isRed ? Border.all(color: Colors.red.shade100) : null,
+        boxShadow: isRed ? null : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: color),
+        title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: color),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context, AuthService authService) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          authService.logout();
+          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.red,
+          elevation: 0,
+          side: const BorderSide(color: Colors.red),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        ),
+        child: const Text('Logout'),
       ),
     );
   }
