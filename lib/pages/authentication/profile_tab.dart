@@ -11,6 +11,49 @@ class ProfileTab extends StatelessWidget {
   static const Color mossGreen = Color(0xFF5B6739);
   static const Color goldColor = Color(0xFFDAA520);
 
+  // --- USM DATA LISTS ---
+  static const List<String> usmFaculties = [
+    'School of Computer Sciences',
+    'School of Housing, Building and Planning',
+    'School of Industrial Technology',
+    'School of Pharmaceutical Sciences',
+    'School of Management',
+    'School of Educational Studies',
+    'School of Arts',
+    'School of Communication',
+    'School of Civil Engineering',
+    'School of Aerospace Engineering',
+    'School of Mechanical Engineering',
+    'School of Electrical & Electronic Engineering',
+    'School of Materials & Mineral Resources',
+    'School of Chemical Engineering',
+    'School of Biological Sciences',
+    'School of Chemical Sciences',
+    'School of Mathematical Sciences',
+    'School of Physics',
+    'School of Social Sciences',
+    'School of Humanities',
+    'School of Languages, Literacies and Translation',
+    'Other'
+  ];
+
+  static const List<String> usmColleges = [
+    'Aman Damai',
+    'Bakti Permai',
+    'Cahaya Gemilang',
+    'Fajar Harapan',
+    'Indah Kembara',
+    'Restu',
+    'Saujana',
+    'Tekun',
+    'Lembaran',
+    'Jaya',
+    'Utama',
+    'Murni',
+    'Nurani',
+    'Off-Campus'
+  ];
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
@@ -20,9 +63,7 @@ class ProfileTab extends StatelessWidget {
       return const Center(child: CircularProgressIndicator(color: mossGreen));
     }
 
-    // CHECK LOGIN METHOD:
-    // If the user signed in with 'password', they can change it.
-    // If they signed in with 'google.com', they cannot.
+    // CHECK LOGIN METHOD
     bool isPasswordUser = false;
     final fbUser = fb_auth.FirebaseAuth.instance.currentUser;
     if (fbUser != null) {
@@ -36,7 +77,7 @@ class ProfileTab extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF556B2F), Color(0xFFFDFCF5)],
+          colors: [Color(0xFF556B2F), Color(0xFFFDFCF5)], 
           begin: Alignment.topCenter,
           end: Alignment.center,
         ),
@@ -74,12 +115,15 @@ class ProfileTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 24, 
-                        fontWeight: FontWeight.bold, 
-                        color: Colors.white 
+                    Flexible(
+                      child: Text(
+                        name,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 24, 
+                          fontWeight: FontWeight.bold, 
+                          color: Colors.white 
+                        ),
                       ),
                     ),
                     if (isAdmin) ...[
@@ -106,7 +150,7 @@ class ProfileTab extends StatelessWidget {
                 
                 const SizedBox(height: 20),
 
-                // ONLY SHOW CHANGE PASSWORD IF LOGGED IN WITH EMAIL/PASSWORD
+                // Change Password (Only if email/password login)
                 if (isPasswordUser)
                   _buildActionTile(
                     icon: Icons.lock_outline,
@@ -139,56 +183,107 @@ class ProfileTab extends StatelessWidget {
     );
   }
 
-  // --- FEATURE: EDIT PROFILE ---
+  // --- UPDATED: EDIT PROFILE DIALOG WITH DROPDOWNS ---
   void _showEditProfileDialog(BuildContext context, String uid, Map<String, dynamic> data) {
     final nameController = TextEditingController(text: data['name']);
-    final facultyController = TextEditingController(text: data['faculty']);
-    final collegeController = TextEditingController(text: data['residentialCollege']);
     final matricController = TextEditingController(text: data['matricNo']);
+    
+    // Ensure initial values match the list, or default to null if not found
+    String? selectedFaculty = data['faculty'];
+    if (!usmFaculties.contains(selectedFaculty)) selectedFaculty = null;
+
+    String? selectedCollege = data['residentialCollege'];
+    if (!usmColleges.contains(selectedCollege)) selectedCollege = null;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Edit Profile", style: TextStyle(color: mossGreen, fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTextField(nameController, "Full Name"),
-              _buildTextField(facultyController, "Faculty"),
-              _buildTextField(collegeController, "Residential College"),
-              _buildTextField(matricController, "Matric No"),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text("Edit Profile", style: TextStyle(color: mossGreen, fontWeight: FontWeight.bold)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTextField(nameController, "Full Name"),
+                  
+                  const SizedBox(height: 10),
+                  
+                  // FACULTY DROPDOWN
+                  DropdownButtonFormField<String>(
+                    value: selectedFaculty,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: "Faculty",
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: mossGreen, width: 2)),
+                    ),
+                    items: usmFaculties.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value, style: const TextStyle(fontSize: 14), overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (val) => setState(() => selectedFaculty = val),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // COLLEGE DROPDOWN
+                  DropdownButtonFormField<String>(
+                    value: selectedCollege,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: "Residential College",
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: mossGreen, width: 2)),
+                    ),
+                    items: usmColleges.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value, style: const TextStyle(fontSize: 14)),
+                      );
+                    }).toList(),
+                    onChanged: (val) => setState(() => selectedCollege = val),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  _buildTextField(matricController, "Matric No"),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+                      'name': nameController.text,
+                      'faculty': selectedFaculty ?? data['faculty'], // Keep old if null
+                      'residentialCollege': selectedCollege ?? data['residentialCollege'],
+                      'matricNo': matricController.text,
+                    });
+                    if (context.mounted) Navigator.pop(ctx);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to update: $e")));
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: mossGreen, foregroundColor: Colors.white),
+                child: const Text("Save"),
+              ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await FirebaseFirestore.instance.collection('users').doc(uid).update({
-                  'name': nameController.text,
-                  'faculty': facultyController.text,
-                  'residentialCollege': collegeController.text,
-                  'matricNo': matricController.text,
-                });
-                if (context.mounted) Navigator.pop(ctx);
-              } catch (e) {
-                // Handle Rule Error
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to update: $e")));
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: mossGreen, foregroundColor: Colors.white),
-            child: const Text("Save"),
-          ),
-        ],
+          );
+        }
       ),
     );
   }
 
-  // --- FEATURE: CHANGE PASSWORD ---
+  // --- CHANGE PASSWORD DIALOG ---
   void _showChangePasswordDialog(BuildContext context) {
     final currentPassController = TextEditingController();
     final newPassController = TextEditingController();
@@ -239,14 +334,11 @@ class ProfileTab extends StatelessWidget {
               if (user == null) return;
 
               try {
-                // 1. Re-authenticate
                 final cred = fb_auth.EmailAuthProvider.credential(
                   email: user.email!, 
                   password: currentPassController.text
                 );
                 await user.reauthenticateWithCredential(cred);
-
-                // 2. Update Password
                 await user.updatePassword(newPassController.text);
                 
                 if (context.mounted) {
@@ -274,8 +366,7 @@ class ProfileTab extends StatelessWidget {
     );
   }
 
-  // --- WIDGET HELPERS ---
-
+  // --- HELPERS ---
   Widget _buildTextField(TextEditingController controller, String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -360,12 +451,14 @@ class ProfileTab extends StatelessWidget {
         children: [
           Icon(icon, color: mossGreen),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: mossGreen)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: mossGreen)),
+              ],
+            ),
           ),
         ],
       ),
