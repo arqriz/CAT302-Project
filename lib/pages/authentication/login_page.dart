@@ -37,7 +37,6 @@ class _LoginPageState extends State<LoginPage>
           _emailController.text.trim(), _passwordController.text.trim());
       
       if (success) {
-        // FIX: Force navigation to Dashboard on success
         if (mounted) {
            Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
         }
@@ -63,7 +62,6 @@ class _LoginPageState extends State<LoginPage>
     try {
       final user = await authService.signInWithGoogle();
       if (user != null && mounted) {
-        // FIX: Force navigation to Dashboard on success
         Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
       } else if (mounted) {
         _showErrorSnackBar("Google Sign-In canceled.");
@@ -102,20 +100,34 @@ class _LoginPageState extends State<LoginPage>
             ),
           ),
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  children: [
-                    _buildLogo(),
-                    const SizedBox(height: 50),
-                    _buildLoginCard(),
-                    const SizedBox(height: 40),
-                    _buildRegisterLink(),
-                  ],
-                ),
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      // This ensures the content takes up at least the full screen height
+                      // allowing us to center it vertically when there is space.
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center, // Centers content vertically
+                        children: [
+                          const SizedBox(height: 20), // Top spacing
+                          _buildLogo(),
+                          const SizedBox(height: 50),
+                          _buildLoginCard(),
+                          const SizedBox(height: 40),
+                          _buildRegisterLink(),
+                          const SizedBox(height: 20), // Bottom spacing
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
             ),
           ),
         ],
