@@ -111,19 +111,32 @@ class _RegisterPageState extends State<RegisterPage> {
         children: [
           _buildBackgroundPainter(),
           SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    _buildGlassCard(),
-                    const SizedBox(height: 20),
-                    _buildFooter(),
-                  ],
-                ),
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      // Ensure the content is at least as tall as the screen
+                      // so we can center it vertically.
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                      child: Column(
+                        // This centers the card when there is extra space
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 20),
+                          _buildGlassCard(),
+                          const SizedBox(height: 20),
+                          _buildFooter(),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
             ),
           ),
         ],
@@ -221,7 +234,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         items: items
             .map((item) => DropdownMenuItem(value: item, child: Text(item, style: const TextStyle(fontSize: 14))))
             .toList(),
