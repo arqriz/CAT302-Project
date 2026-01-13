@@ -94,10 +94,10 @@ class ProfileTab extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      CircleAvatar(
+                      const CircleAvatar(
                         radius: 40,
                         backgroundColor: goldColor,
-                        child: const Icon(Icons.person, size: 45, color: Colors.white),
+                        child: Icon(Icons.person, size: 45, color: Colors.white),
                       ),
                       const SizedBox(height: 15),
                       
@@ -275,7 +275,7 @@ class ProfileTab extends StatelessWidget {
                   )
                 ),
               );
-            }).toList()
+            })
           ],
         );
       },
@@ -358,9 +358,9 @@ class ProfileTab extends StatelessWidget {
             children: [
               _buildTextField(nameController, "Full Name"),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(value: selectedFaculty, isExpanded: true, decoration: InputDecoration(labelText: "Faculty", labelStyle: const TextStyle(fontSize: 14), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), items: usmFaculties.map((v) => DropdownMenuItem(value: v, child: Text(v, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis))).toList(), onChanged: (val) => setState(() => selectedFaculty = val)),
+              DropdownButtonFormField<String>(initialValue: selectedFaculty, isExpanded: true, decoration: InputDecoration(labelText: "Faculty", labelStyle: const TextStyle(fontSize: 14), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), items: usmFaculties.map((v) => DropdownMenuItem(value: v, child: Text(v, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis))).toList(), onChanged: (val) => setState(() => selectedFaculty = val)),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(value: selectedCollege, isExpanded: true, decoration: InputDecoration(labelText: "Residential College", labelStyle: const TextStyle(fontSize: 14), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), items: usmColleges.map((v) => DropdownMenuItem(value: v, child: Text(v, style: const TextStyle(fontSize: 13)))).toList(), onChanged: (val) => setState(() => selectedCollege = val)),
+              DropdownButtonFormField<String>(initialValue: selectedCollege, isExpanded: true, decoration: InputDecoration(labelText: "Residential College", labelStyle: const TextStyle(fontSize: 14), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), items: usmColleges.map((v) => DropdownMenuItem(value: v, child: Text(v, style: const TextStyle(fontSize: 13)))).toList(), onChanged: (val) => setState(() => selectedCollege = val)),
               const SizedBox(height: 12),
               _buildTextField(matricController, "Matric No"),
             ],

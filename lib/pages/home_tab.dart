@@ -552,8 +552,9 @@ class _HomeTabState extends State<HomeTab> {
     return StreamBuilder<List<Activity>>(
       stream: service.getUserActivities(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty)
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SizedBox();
+        }
         final recent = snapshot.data!.take(3).toList();
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 25),

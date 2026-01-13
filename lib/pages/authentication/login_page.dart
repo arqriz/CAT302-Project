@@ -201,14 +201,14 @@ class _LoginPageState extends State<LoginPage>
               width: 20,
               child:
                   CircularProgressIndicator(strokeWidth: 2, color: primaryDark))
-          : Row(
+          : const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.g_mobiledata_rounded,
+                Icon(Icons.g_mobiledata_rounded,
                     size: 35, color: primaryDark),
-                const SizedBox(width: 8),
-                const Flexible(
+                SizedBox(width: 8),
+                Flexible(
                   child: Text(
                     "Continue with Google",
                     overflow: TextOverflow.ellipsis,
@@ -227,11 +227,11 @@ class _LoginPageState extends State<LoginPage>
       tag: 'app_logo',
       child: Image.asset('assets/images/first.png', height: 200));
 
-  Widget _buildDivider() => Row(children: [
-        const Expanded(child: Divider()),
-        const Padding(
+  Widget _buildDivider() => const Row(children: [
+        Expanded(child: Divider()),
+        Padding(
             padding: EdgeInsets.symmetric(horizontal: 10), child: Text("OR")),
-        const Expanded(child: Divider())
+        Expanded(child: Divider())
       ]);
 
   Widget _buildRegisterLink() =>
